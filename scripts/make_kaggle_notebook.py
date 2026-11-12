@@ -75,7 +75,8 @@ from pathlib import Path
 print(subprocess.run(
     ["nvidia-smi", "--query-gpu=name,memory.total,driver_version", "--format=csv"],
     capture_output=True, text=True,
-).stdout or "no nvidia-smi: pick a GPU accelerator in Settings")
+).stdout if shutil.which("nvidia-smi") else
+      "no nvidia-smi on PATH: this session has no GPU accelerator")
 """
         ),
         code(
@@ -145,6 +146,11 @@ except ImportError as error:
 
 print("torch", torch.__version__, "| transformers", transformers.__version__)
 print("cuda", torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else "")
+if not torch.cuda.is_available():
+    raise SystemExit(
+        "No CUDA device. Set Settings -> Accelerator -> GPU T4 x2 on this notebook "
+        "and re-run; training 15,515 pairs on CPU would take hours."
+    )
 if torch.cuda.is_available():
     # T4 / P100 are sm_75 / sm_60: no flash kernel, so long sequences cost real memory.
     print(

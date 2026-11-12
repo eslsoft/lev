@@ -1,0 +1,29 @@
+{
+  "id": "bba522290",
+  "name": "Kaggle kernel watch",
+  "command": "while true; do\n  s=$(kaggle kernels status saltbo/lev-encoder-modernbert-train 2>&1 | tail -1)\n  echo \"$(date +%H:%M:%S) $s\"\n  case \"$s\" in\n    *COMPLETE*|*ERROR*|*CANCEL*) break;;\n  esac\n  sleep 60\ndone",
+  "description": "Poll Kaggle kernel status until it reaches a terminal state",
+  "status": "completed",
+  "outputPath": ".pi/tasks/01a1cdfe-acfe-769b-9448-6bcde24a2f18-15792/bba522290.output",
+  "cwd": "/Users/saltbo/Develop/bogit/eslsoft/lev",
+  "startTime": 1794459638512,
+  "endTime": 1794459699174,
+  "exitCode": 0,
+  "signal": null,
+  "pid": 48435,
+  "bytesWritten": 168,
+  "isAgent": false,
+  "surviveReload": false,
+  "notified": true,
+  "notifyOnCompletion": true,
+  "triggerOnCompletion": true,
+  "timeoutSeconds": 7200,
+  "shellPolicy": {
+    "policy": "inherit",
+    "executable": "/bin/zsh",
+    "argvPrefix": [
+      "-c"
+    ],
+    "dialect": "posix"
+  }
+}
