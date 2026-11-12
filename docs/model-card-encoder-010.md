@@ -16,7 +16,7 @@
 |---|---|---:|---:|---:|---:|
 | `enc-train-001` | `en-joint-002` | 15,515 | 133/147 = 90.48% | 128/139 = 92.09% | 5/8 = 62.50% |
 | `enc-train-003` | `en-joint-006` | 80,363 | 80/147 = 54.42% | 77/139 = 55.40% | 3/8 = 37.50% |
-| **`enc-train-004`** | **`en-joint-010`** | **29,423** | **136/147 = 92.52%** | **131/139 = 94.24%** | **5/8 = 62.50%** |
+| **`enc-train-004`** | **`en-joint-010`** | **19,153** | **136/147 = 92.52%** | **131/139 = 94.24%** | **5/8 = 62.50%** |
 
 `enc-train-004` 在 303 条多任务 development 上为 212/303 = 69.97%（阈值 0.39 时 222/303 = 73.27%），`brier_completed_only`（passage_correction）0.05576，`dataset_sha256` = `fc7c843a7936d8cc9cfdcb18091d06a71faabbad26aad72f3374177b4b6a30c9`，与本地 dry-run 逐字节一致。
 
@@ -40,14 +40,14 @@
 
 | 数据包 | train 判断 | 每 epoch | 3 epochs | 峰值显存 |
 |---|---:|---:|---:|---:|
-| `en-joint-010` | 29,423 | 406–407 秒 | 1,220 秒（20.3 分钟） | 6.90 GiB |
+| `en-joint-010` | 19,153 | 406–407 秒 | 1,220 秒（20.3 分钟） | 6.90 GiB |
 | `en-joint-006` | 80,363 | 1,352–1,357 秒 | 4,065 秒（67.7 分钟） | 6.85 GiB |
 
-单卡 T4 16 GiB，fp16，`max_len = 3072`（两包均不截断），吞吐约 72 判断/秒。`max_len` 是拒绝线，`max_tokens = 8192` 是显存预算；超长输入直接失败，不截断。
+单卡 T4 16 GiB，fp16，`max_len = 3072`（两包均不截断）。实测吞吐 `en-joint-010` 为 47.1 判断/秒（19,153 / 406.77 秒），`en-joint-006` 为 59.3 判断/秒（80,363 / 1,354.83 秒）。`max_len` 是拒绝线，`max_tokens = 8192` 是显存预算；超长输入直接失败，不截断。
 
 ## 评估包 `en-eval-001`
 
-多任务评估包，development 4,899 判断，覆盖 6 类：grammaticality 3,094、pronunciation 672、syntax 544、lexical_analysis 286、semantic_relation 156、passage_correction 139、contextual_sense 8。**尚未训练评分。**
+多任务评估包，development 4,899 判断，覆盖 7 类：grammaticality 3,094、pronunciation 672、syntax 544、lexical_analysis 286、semantic_relation 156、passage_correction 139、contextual_sense 8。**尚未训练评分。**
 
 - `audit_family_isolation.py` 报 **44 个家族违规**（syntax 34、lexical_analysis 10、semantic_relation 4、pronunciation 4、grammaticality 3、contextual_sense 1），其中 4 个在 `en-joint-010` 本身就存在；`prepare()` 只校验字面 `family_id`（零交叉），更严的词族根视角见 `data/research/en-eval-001/isolation-report.json`。
 - 重叠不可避：base train 的 passages 覆盖极宽词汇面，任何新 held-out 句子几乎必然与某条 train passage 同词族。新增项按「家族未被 base 分配」筛选（UD 排除 823、BLiMP 排除 2,881、CMUdict 排除 34、Wiktionary 排除 22），仍挡不住 `attach()` 事后把文档与词连起来。
