@@ -14,6 +14,7 @@ family ids stay comparable with every other Lev pack.
 
 from collections import Counter
 from pathlib import Path
+import argparse
 import gzip
 import re
 import xml.etree.ElementTree as ET
@@ -26,13 +27,28 @@ from lev.dataset import bundle, prepare
 from lev.io import digest, encoded, write
 
 BASE = Path("artifacts/en-joint-002")
-OUT = Path("data/research/en-joint-006")
-ARTIFACT = Path("artifacts/en-joint-006")
 RUBRIC = Path("rubrics/en-general-research-v1.json")
 RAW = Path("data/raw/en-research-20261021-a")
 WORDNET = RAW / "wordnet.xml.gz"
 TARGET = Path("artifacts/en-us-vocab-35000-v3/words.txt")
 VERSION = "en-general-research-v1"
+
+
+def coverage_split(family):
+    """Reserve a small holdout so train keeps word coverage.
+
+    The project default partition() is 70/10/10/10, which would move a third of
+    the fresh OEWN families out of train. Development only needs enough items to
+    measure each kind, so reserve 12% in total and keep 88% for training.
+    """
+    bucket = int(key("lev-coverage-88:" + family)[:8], 16) % 100
+    if bucket < 88:
+        return "train"
+    if bucket < 94:
+        return "development"
+    if bucket < 97:
+        return "calibration"
+    return "test"
 CONVENTION = (
     "WordNet sense-level is-a hierarchy; subtype is more specific, "
     "not merely associated."
@@ -79,6 +95,11 @@ def eligible(lex):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--version", required=True)
+    args = parser.parse_args()
+    OUT = Path("data/research") / args.version
+    ARTIFACT = Path("artifacts") / args.version
     if OUT.exists() or ARTIFACT.exists():
         raise ValueError("new output directories required")
     base, base_manifest = bundle(BASE)
@@ -96,6 +117,9 @@ def main():
     families.attach(base + prior)
     holdout_fams = {
         families.find(r["family_id"]) for r in base + prior if r["split"] != "train"
+    }
+    base_train_fams = {
+        families.find(r["family_id"]) for r in base + prior if r["split"] == "train"
     }
     refused = set()
     for sid, _syn, _parent, members, parents in candidates:
@@ -186,7 +210,11 @@ def main():
                 id=rid,
                 case_id=rid,
                 family_id=family,
-                split="train",
+                split=(
+                    "train"
+                    if family in base_train_fams
+                    else coverage_split(family)
+                ),
                 language="en",
                 scope="partial",
                 origin="generated",
@@ -241,11 +269,16 @@ def main():
     prepare(OUT / "records.jsonl", RUBRIC, ARTIFACT, research=True)
     exported, manifest = bundle(ARTIFACT)
 
-    for split in ("development", "calibration", "test"):
-        before = digest(BASE / f"{split}.jsonl")
-        after = digest(ARTIFACT / f"{split}.jsonl")
-        if before != after:
-            raise ValueError(f"{split} changed: {before} != {after}")
+    # Base held-out records must survive unchanged. The files themselves may grow
+    # because new development/calibration/test items are added, so compare by id.
+    exported_by_id = {r["id"]: r for r in exported}
+    base_holdout = {r["id"]: r for r in base if r["split"] != "train"}
+    missing = set(base_holdout) - set(exported_by_id)
+    if missing:
+        raise ValueError(f"{len(missing)} held-out records dropped")
+    for rid, original in base_holdout.items():
+        if exported_by_id[rid] != original:
+            raise ValueError(f"held-out record changed: {rid}")
 
     split_of = {}
     for row in exported:
@@ -279,17 +312,29 @@ def main():
         by_kind=dict(
             Counter(q["kind"] for r in exported for q in r["questions"].values())
         ),
+        by_split_kind={
+            split: dict(
+                Counter(
+                    q["kind"]
+                    for r in exported
+                    if r["split"] == split
+                    for q in r["questions"].values()
+                )
+            )
+            for split in ("train", "development", "calibration", "test")
+        },
         families=len({families.find(r["family_id"]) for r in exported}),
         train_families=len(train_families),
         target_words_covered=len(covered),
         target_words_covered_ratio=round(len(covered) / len(target), 4),
         families_crossing_splits=0,
+        base_holdout_records_preserved=len(base_holdout),
         benchmark_policy=(
             "The frozen 35k inventory benchmark tests OEWN POS, sense and CMUdict "
             "pronunciation membership for its own headwords. No such question is "
             "generated here; hypernymy only."
         ),
-        heldout_byte_identical=True,
+        heldout_files_grow=True,
         status="passed",
     )
     write(OUT / "summary.json", summary)
