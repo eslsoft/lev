@@ -171,10 +171,10 @@ epoch {"epoch": 1, "pairs": 32, "seconds": 71.85, "train_loss": 1.698, "peak_dev
 
 ## 尚未验证
 
-- `en-eval-001`（多任务评估包）**尚未训练评分**。它的 development 含 4,069 判断：grammaticality 3,094、pronunciation 672、semantic_relation 156、passage_correction 139、contextual_sense 8。
-- `en-eval-001` 跑 `audit_family_isolation.py` 报 **10 个家族违规**，其中 4 个在 `en-joint-010` 本身就存在。`prepare()` 只校验字面 `family_id`（零交叉），这个更严的词族根视角由项目审计给出，已记录在 `data/research/en-eval-001/isolation-report.json`，不隐藏。
+- `en-eval-001`（多任务评估包）**尚未训练评分**。development 含 4,899 判断，覆盖 6 类：grammaticality 3,094、pronunciation 672、syntax 544、lexical_analysis 286、semantic_relation 156、passage_correction 139、contextual_sense 8。
+- `en-eval-001` 跑 `audit_family_isolation.py` 报 **44 个家族违规**（syntax 34、lexical_analysis 10、semantic_relation 4、pronunciation 4、grammaticality 3、contextual_sense 1），其中 4 个在 `en-joint-010` 本身就存在。`prepare()` 只校验字面 `family_id`（零交叉），这个更严的词族根视角由项目审计给出，已记录在 `data/research/en-eval-001/isolation-report.json`，不隐藏。
+- 重叠不可避：base train 的 passages 覆盖极宽词汇面，任何新 held-out 句子几乎必然与某条 train passage 同词族。新增项因此按「家族未被 base 分配」筛选（UD 排除 823 条、BLiMP 排除 2,881 条、CMUdict 排除 34 条、Wiktionary 排除 22 条），仍挡不住 `attach()` 事后把文档与词连起来。
 - `en-eval-001` 的标签全部是 `source_derived` / `source_labeled`，**不是独立裁决**。
-- 未生成 syntax（UD）与 lexical_analysis（Wiktionary）的评估项：本仓库这两个生成器只复述训练项，做出来的 development 会重述 train 而不是度量它。
 - 没有温度校准。`report` 的 `brier_completed_only` 用的是未校准概率，不能与 v0.2 的校准后 Brier 并列。
 - 与 v0.2–v0.6 血统**不可比**：不同骨干、不同精度路径、不同硬件。按 `docs/workflow.md` 的口径，换骨干或换硬件后要重新验证，不能把两边的数字放进同一张表。
 - 编码器不产生 `calibration.json`，也没有 `serve` 入口。

@@ -29,6 +29,8 @@ RUBRIC = Path("rubrics/en-general-research-v1.json")
 RESEARCH = Path("data/raw/en-research-20261021-a")
 CMU = RESEARCH / "cmudict.dict"
 BLIMP = Path("data/raw/en-general-003/blimp.zip")
+UD = RESEARCH / "ud.conllu"
+WIKTIONARY = RESEARCH / "wiktionary"
 BLIMP_SHA = "172a1a714d72e72a89e8384dd531483f3d0f8a9aee3d33dccaf7992d8cecbb73"
 VERSION = "en-eval-001"
 NOTATION = (
@@ -223,11 +225,221 @@ def grammaticality(limit, families, known, excluded):
     return rows
 
 
+def syntax(raw, limit, families, known, excluded):
+    """UD EWT dependency-role items for sentences the base never assigns."""
+    roles = {
+        "nsubj": "nominal subject",
+        "obj": "direct object",
+        "amod": "adjectival modifier",
+        "advmod": "adverbial modifier",
+    }
+    wrong_of = {"nsubj": "obj", "obj": "nsubj", "amod": "advmod", "advmod": "amod"}
+    candidates = []
+    for block in raw.read_text().split("\n\n"):
+        lines = block.splitlines()
+        meta = dict(
+            line[2:].split(" = ", 1)
+            for line in lines
+            if line.startswith("# ") and " = " in line
+        )
+        if "sent_id" not in meta:
+            continue
+        tokens = [
+            line.split("\t")
+            for line in lines
+            if line and not line.startswith("#") and line.split("\t")[0].isdigit()
+        ]
+        eligible = [
+            t
+            for t in tokens
+            if t[3] in {"NOUN", "VERB", "ADJ", "ADV"}
+            and re.fullmatch("[a-z]{4,16}", t[2])
+            and t[7] in roles
+        ]
+        if not eligible or not 5 <= len(tokens) <= 30:
+            continue
+        target = min(eligible, key=lambda t: key(meta["sent_id"] + t[0]))
+        candidates.append((meta, tokens, target))
+    chosen = sorted(candidates, key=lambda x: key("eval-ud:" + x[0]["sent_id"]))[:limit]
+    rows = []
+    for meta, tokens, t in chosen:
+        doc = meta["sent_id"].rsplit("-", 1)[0]
+        lex = families.find(families.word(t[2]))
+        if lex in known or families.find("document:" + doc) in known:
+            excluded["ud_family_already_assigned"] += 1
+            continue
+        rid = key(VERSION + ":ud:" + meta["sent_id"] + ":token=" + t[0])[:24]
+        wrong = wrong_of[t[7]]
+        rows.append(
+            dict(
+                id=rid,
+                case_id=rid,
+                family_id=lex,
+                split=eval_split(lex),
+                language="en",
+                scope="partial",
+                origin="generated",
+                rubric_version="en-general-research-v1",
+                state=dict(
+                    tokens=[{"index": int(x[0]), "text": x[1]} for x in tokens],
+                    target_index=int(t[0]),
+                    convention=(
+                        "Universal Dependencies basic analysis. Judge the target "
+                        "token's dependency role, not a possible role in another "
+                        "sentence."
+                    ),
+                ),
+                questions={
+                    "q0": dict(
+                        kind="syntax",
+                        claim=f"Does the target token function as a {roles[t[7]]}?",
+                        label=True,
+                        review=dict(
+                            status="source_derived",
+                            reviewer="source:ud.conllu",
+                            rationale=(
+                                "The EWT source assigns the explicit basic dependency "
+                                "relation in column 8. Source-derived, not independently "
+                                "adjudicated by Lev."
+                            ),
+                            evidence=[
+                                dict(reference=str(raw), locator=meta["sent_id"]),
+                                dict(reference=str(raw), locator="sha256:" + digest(raw)),
+                            ],
+                        ),
+                    ),
+                    "q1": dict(
+                        kind="syntax",
+                        claim=f"Does the target token function as a {roles[wrong]}?",
+                        label=False,
+                        review=dict(
+                            status="source_derived",
+                            reviewer="source:ud.conllu",
+                            rationale=(
+                                "The alternative is a different exclusive basic "
+                                "relation under this annotation."
+                            ),
+                            evidence=[
+                                dict(reference=str(raw), locator=meta["sent_id"]),
+                                dict(reference=str(raw), locator="sha256:" + digest(raw)),
+                            ],
+                        ),
+                    ),
+                },
+            )
+        )
+    return rows, len(candidates)
+
+
+def lexical_analysis(raw_dir, families, known, excluded):
+    """Wiktionary part-of-speech items for headwords the base never assigns."""
+    names = {"adj": "adjective", "adv": "adverb"}
+    wrong_of = {
+        "noun": "verb",
+        "verb": "noun",
+        "adjective": "adverb",
+        "adverb": "adjective",
+    }
+    rows = []
+    for path in sorted(raw_dir.glob("*.jsonl")):
+        word = path.stem
+        lex = families.find(families.word(word))
+        if lex in known:
+            excluded["wiktionary_family_already_assigned"] += 1
+            continue
+        try:
+            entries = [json.loads(line) for line in path.read_text().splitlines()]
+        except json.JSONDecodeError as error:
+            raise ValueError(f"Wiktionary {path} is not valid JSONL") from error
+        for number, entry in enumerate(entries):
+            pos = entry.get("pos")
+            if (
+                not isinstance(pos, str)
+                or pos not in {"noun", "verb", "adj", "adv"}
+                or not entry.get("senses")
+            ):
+                continue
+            glosses = entry["senses"][0].get("glosses", [])
+            if not glosses:
+                continue
+            pos = names.get(pos, pos)
+            rid = key(VERSION + ":wiktionary:" + word + ":" + str(number))[:24]
+            rows.append(
+                dict(
+                    id=rid,
+                    case_id=rid,
+                    family_id=lex,
+                    split=eval_split(lex),
+                    language="en",
+                    scope="partial",
+                    origin="generated",
+                    rubric_version="en-general-research-v1",
+                    state=dict(
+                        headword=word,
+                        sense_description=" / ".join(glosses),
+                        usage_tags=entry["senses"][0].get("tags", []),
+                        scope=(
+                            "The particular Wiktionary lexical sense described here, "
+                            "not every possible use of the spelling."
+                        ),
+                    ),
+                    questions={
+                        "q0": dict(
+                            kind="lexical_analysis",
+                            claim=f"Is {pos} the part of speech of this lexical sense?",
+                            label=True,
+                            review=dict(
+                                status="source_derived",
+                                reviewer="source:wiktionary",
+                                rationale=(
+                                    "The original entry explicitly supplies its pos and "
+                                    "first sense. Source-derived, not independently "
+                                    "adjudicated by Lev."
+                                ),
+                                evidence=[
+                                    dict(reference=str(path), locator=f"entry={number}"),
+                                    dict(
+                                        reference=str(path),
+                                        locator="sha256:" + digest(path),
+                                    ),
+                                ],
+                            ),
+                        ),
+                        "q1": dict(
+                            kind="lexical_analysis",
+                            claim=(
+                                f"Is {wrong_of[pos]} the part of speech of this "
+                                "lexical sense?"
+                            ),
+                            label=False,
+                            review=dict(
+                                status="source_derived",
+                                reviewer="source:wiktionary",
+                                rationale=(
+                                    "The alternative part of speech refers only to this "
+                                    "sense and contradicts the source pos."
+                                ),
+                                evidence=[
+                                    dict(reference=str(path), locator=f"entry={number}"),
+                                    dict(
+                                        reference=str(path),
+                                        locator="sha256:" + digest(path),
+                                    ),
+                                ],
+                            ),
+                        ),
+                    },
+                )
+            )
+    return rows
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--version", default=VERSION)
     parser.add_argument("--pronunciation", type=int, default=600)
     parser.add_argument("--grammaticality-percent", type=int, default=8)
+    parser.add_argument("--syntax", type=int, default=1200)
     args = parser.parse_args()
     OUT = Path("data/research") / args.version
     ARTIFACT = Path("artifacts") / args.version
@@ -249,7 +461,9 @@ def main():
     blimp_rows = grammaticality(
         args.grammaticality_percent, families, known, excluded
     )
-    fresh = cmu_rows + blimp_rows
+    syntax_rows, ud_candidates = syntax(UD, args.syntax, families, known, excluded)
+    lex_rows = lexical_analysis(WIKTIONARY, families, known, excluded)
+    fresh = cmu_rows + blimp_rows + syntax_rows + lex_rows
 
     base_ids = {r["id"] for r in base}
     seen = set()
@@ -304,6 +518,7 @@ def main():
         fresh_records=len(unique),
         fresh_questions=sum(len(r["questions"]) for r in unique),
         pronunciation_candidates=cmu_candidates,
+        syntax_candidates=ud_candidates,
         judgments_by_split=dict(
             Counter(r["split"] for r in exported for _ in r["questions"])
         ),
@@ -336,11 +551,12 @@ def main():
             "skipped, so these items come only from constructions the pack never saw. "
             "A high score here is therefore not memorisation of a trained construction."
         ),
-        not_generated=[
-            "syntax (UD) and lexical_analysis (Wiktionary) were not added: their only "
-            "generators in this repository replay training items, so a development set "
-            "built from them would restate train rather than measure it.",
-        ],
+        not_generated=[],
+        ud_note=(
+            "UD items use the EWT basic dependency relation as the label. A record "
+            "whose lexical family or source document is already assigned to the "
+            "training pack is skipped, so these sentences are new to the model."
+        ),
         adjudication="source_derived or source_labeled only; not independently adjudicated",
         status="prepared_not_trained",
     )

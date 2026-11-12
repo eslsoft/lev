@@ -47,11 +47,11 @@
 
 ## 评估包 `en-eval-001`
 
-多任务评估包，development 4,069 判断：grammaticality 3,094、pronunciation 672、semantic_relation 156、passage_correction 139、contextual_sense 8。**尚未训练评分。**
+多任务评估包，development 4,899 判断，覆盖 6 类：grammaticality 3,094、pronunciation 672、syntax 544、lexical_analysis 286、semantic_relation 156、passage_correction 139、contextual_sense 8。**尚未训练评分。**
 
-- `audit_family_isolation.py` 报 **10 个家族违规**，其中 4 个在 `en-joint-010` 本身就存在；`prepare()` 只校验字面 `family_id`（零交叉），更严的词族根视角见 `data/research/en-eval-001/isolation-report.json`。
+- `audit_family_isolation.py` 报 **44 个家族违规**（syntax 34、lexical_analysis 10、semantic_relation 4、pronunciation 4、grammaticality 3、contextual_sense 1），其中 4 个在 `en-joint-010` 本身就存在；`prepare()` 只校验字面 `family_id`（零交叉），更严的词族根视角见 `data/research/en-eval-001/isolation-report.json`。
+- 重叠不可避：base train 的 passages 覆盖极宽词汇面，任何新 held-out 句子几乎必然与某条 train passage 同词族。新增项按「家族未被 base 分配」筛选（UD 排除 823、BLiMP 排除 2,881、CMUdict 排除 34、Wiktionary 排除 22），仍挡不住 `attach()` 事后把文档与词连起来。
 - 标签全部为 `source_derived` / `source_labeled`，**不是独立裁决**。
-- 未生成 syntax（UD）与 lexical_analysis（Wiktionary）评估项：本仓库这两个生成器只复述训练项，做出来的 development 会重述 train 而非度量它。
 
 ## 已知缺口（未覆盖，不声称覆盖）
 
