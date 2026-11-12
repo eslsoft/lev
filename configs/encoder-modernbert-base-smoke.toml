@@ -1,0 +1,14 @@
+model_name = "lev-enc-mbert-base-smoke"
+backbone = "answerdotai/ModernBERT-base"
+backbone_revision = "8949b909ec900327062f0ebf497f51aef5e6f0c8"
+max_len = 3072
+
+[training]
+epochs = 1
+lr = 0.00003
+batch = 4
+max_tokens = 8192
+accum = 1
+dtype = "fp32"
+seed = 42
+warmup = 0.06

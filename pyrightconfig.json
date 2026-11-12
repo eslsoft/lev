@@ -1,0 +1,7 @@
+{
+  "include": ["src", "tests"],
+  "extraPaths": ["src", ".venv/lib/python3.13/site-packages"],
+  "pythonVersion": "3.13",
+  "reportMissingImports": "error",
+  "reportMissingTypeStubs": "none"
+}

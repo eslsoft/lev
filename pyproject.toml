@@ -17,9 +17,19 @@ lev = "lev.cli:main"
 modal = [
     "modal==1.5.5",
 ]
+encoder = [
+    "torch>=2.6,<3",
+    "transformers>=4.48,<5",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pyright]
+include = ["src", "tests"]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.13"
 
 [dependency-groups]
 dev = [

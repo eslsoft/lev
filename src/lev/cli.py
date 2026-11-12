@@ -6,6 +6,8 @@ import sys
 from pathlib import Path
 
 from .dataset import bundle, prepare, validate
+from .encoder import execute as encoder_execute
+from .encoder import plan as encoder_plan
 from .io import jsonl, read, write
 from .report import summarize
 from .upstream import checkout, contract
@@ -82,6 +84,28 @@ def parser():
         help="pre-register on development data; not a calibrated accuracy guarantee",
     )
     report.add_argument("--out", required=True)
+    for action in ("encode", "encode-benchmark"):
+        cmd = sub.add_parser(action)
+        cmd.add_argument("--config", default="configs/encoder-modernbert-base.toml")
+        cmd.add_argument("--dataset", required=True)
+        cmd.add_argument(
+            "--out",
+            required=True,
+            help="new job directory; never overwrite an earlier run",
+        )
+        cmd.add_argument(
+            "--execute",
+            action="store_true",
+            help="execute the plan; downloads weights and uses the accelerator",
+        )
+        cmd.add_argument("--device", choices=("cpu", "mps", "cuda"), default="cuda")
+        if action == "encode-benchmark":
+            cmd.add_argument("--checkpoint", required=True)
+            cmd.add_argument(
+                "--split",
+                choices=("development", "calibration", "test"),
+                default="development",
+            )
     return p
 
 
@@ -110,6 +134,7 @@ def dispatch(args):
             args.threshold,
         )
         result.update(
+            engine=info.get("engine", "kev"),
             example_only=info["example_only"],
             research_only=info.get("research_only", False),
             split=info["split"],
@@ -119,6 +144,11 @@ def dispatch(args):
         )
         write(args.out, result)
         return result
+    if args.command in ("encode", "encode-benchmark"):
+        job = encoder_plan(args)
+        if args.execute:
+            return encoder_execute(job)
+        return {"dry_run": True, **job}
     job = plan(args)
     if args.execute:
         return execute(job)

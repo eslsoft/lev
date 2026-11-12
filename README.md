@@ -71,6 +71,22 @@ uv run lev prepare --data data/curated/en-v1.jsonl --out artifacts/en-v1
 
 云端入口已接入训练与 development 评测，默认本地预检，显式 `--execute` 才运行。依赖安装、持久化产物、提交命令和当前限制见 [Modal 工作流](docs/modal.md)。正式数据仍需先完成审核与冻结；已完成真实 GPU 训练、检查点重新加载、校准与留出评测，结果及限制见 [v0.2 模型卡](docs/model-card-v02.md)。
 
+## 编码器路径（单卡 / Kaggle 免费额度）
+
+4B 骨干以 fp32 冻结权重常驻约 14.9 GiB，加 LoRA 与激活实测峰值 20.0 GB（`lev-joint001-v03-train-01`），16 GiB 的单卡连权重都装不下；而冻结包的 state 中位数只有 198 字符。因此另有一条 **ModernBERT + 二维 true/false 头** 的路径：读同一份冻结数据包、产出同一套 `job.json` / `rows.json` 证据、由同一个 `lev report` 评分，但不调用 Kev，也不需要 `LEV_KEV_PATH`。
+
+```sh
+uv sync --locked --extra encoder
+uv run --extra encoder python -m lev encode --dataset artifacts/en-joint-002 \
+  --config configs/encoder-modernbert-base.toml --out runs/enc-train-001 --device cuda --execute
+uv run --extra encoder python -m lev encode-benchmark --dataset artifacts/en-joint-002 \
+  --config configs/encoder-modernbert-base.toml \
+  --checkpoint runs/enc-train-001/checkpoint --split development --out runs/enc-dev-001 --execute
+uv run lev report --benchmark runs/enc-dev-001 --threshold 0.5 --out runs/enc-dev-001/lev-report.json
+```
+
+超过 `max_len` 的输入直接失败，不截断。该路径不产生校准，也没有 `serve`，且与 v0.2–v0.6 血统不可比（不同骨干、不同精度、不同硬件）。详见 [编码器路径](docs/encoder.md)；Kaggle notebook 由 `scripts/make_kaggle_notebook.py` 生成。
+
 ## 模型工作流
 
 以下为使用默认 v0.1 配置的通用流程示例；实际 v0.2 权重、校准路径与显式配置命令见 [v0.2 模型卡](docs/model-card-v02.md)。
