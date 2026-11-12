@@ -96,11 +96,15 @@ required = {{"manifest.json", "rubric.json", "records.jsonl"}} | {{
 }}
 missing = sorted(required - {{p.name for p in DATASET.glob("*")}})
 if missing:
+    root = Path("/kaggle/input")
+    seen = sorted(p.name for p in root.glob("*")) if root.is_dir() else []
     raise SystemExit(
         f"{{DATASET}} is not a frozen pack; missing {{missing}}.\\n"
-        "Upload the pack as a Kaggle Dataset and set DATASET to its directory."
+        f"/kaggle/input holds: {{seen}}\\n"
+        "A dataset still processing mounts as an empty directory; wait for "
+        "`kaggle datasets status` to report ready, then re-run."
     )
-print("frozen pack:", DATASET)
+print("frozen pack:", DATASET, "|", len(list(DATASET.glob("*"))), "files")
 print("output:", WORK)
 """
         ),
