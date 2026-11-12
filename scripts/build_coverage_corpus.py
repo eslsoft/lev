@@ -97,6 +97,12 @@ def eligible(lex):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--version", required=True)
+    parser.add_argument(
+        "--relation-records",
+        type=int,
+        default=0,
+        help="Cap accepted semantic_relation synsets. 0 keeps every one.",
+    )
     args = parser.parse_args()
     OUT = Path("data/research") / args.version
     ARTIFACT = Path("artifacts") / args.version
@@ -243,6 +249,19 @@ def main():
             continue
         seen.add(row["id"])
         unique.append(row)
+
+    if args.relation_records:
+        kept, relation_kept = [], 0
+        for row in unique:
+            kind = next(iter(row["questions"].values()))["kind"]
+            if kind != "semantic_relation":
+                kept.append(row)
+            elif relation_kept < args.relation_records:
+                kept.append(row)
+                relation_kept += 1
+            else:
+                dropped["relation_cap"] += 1
+        unique = kept
 
     OUT.mkdir(parents=True)
     combined = base + unique
