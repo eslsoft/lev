@@ -25,7 +25,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .dataset import bundle, fields
-from .io import digest, write
+from .io import digest, encoded, write
 
 MODEL = re.compile(r"lev-[a-z0-9.-]+")
 SHA = re.compile(r"[a-f0-9]{40}")
@@ -83,12 +83,12 @@ def state_text(state):
         value = state[key]
         if isinstance(value, str):
             lines.append(f"{key}: {value}")
-        elif isinstance(value, (dict, list)):
-            from .io import encoded
-
+        elif value is None or isinstance(value, (dict, list, bool, int, float)):
             lines.append(f"{key}: {encoded(value)}")
         else:
-            raise ValueError(f"state.{key} must be a string, object or list")
+            raise ValueError(
+                f"state.{key} must be JSON-serialisable, got {type(value).__name__}"
+            )
     return "\n".join(lines)
 
 

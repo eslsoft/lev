@@ -108,6 +108,17 @@ class EncoderConfigTests(unittest.TestCase):
 class EncoderExampleTests(unittest.TestCase):
     def test_state_text_is_deterministic(self):
         self.assertEqual(state_text({"b": "2", "a": "1"}), "a: 1\nb: 2")
+
+    def test_scalar_state_fields_render_instead_of_failing(self):
+        # en-joint-002 carries state.target_index as an int; refusing it made the
+        # target pack unreadable.
+        rendered = state_text(
+            {"tokens": ["a", "b"], "target_index": 1, "flag": False, "none": None}
+        )
+        self.assertEqual(
+            rendered,
+            'flag: false\nnone: null\ntarget_index: 1\ntokens: ["a", "b"]',
+        )
         self.assertEqual(state_text("plain"), "plain")
         with self.assertRaisesRegex(ValueError, "string or an object"):
             state_text(["x"])

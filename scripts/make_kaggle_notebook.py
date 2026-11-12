@@ -49,15 +49,11 @@ Lev pack, then scores it with the unchanged `lev report`.
 1. **Settings → Internet → On.** The backbone is pulled from the Hub by commit SHA.
 2. **Settings → Accelerator → GPU T4 x2** (or P100). One card is enough; the
    second is unused because this path is single-device.
-3. **Upload the frozen pack as a Kaggle Dataset.** On your machine:
-
-   ```sh
-   cd artifacts && zip -qr en-joint-002.zip en-joint-002
-   ```
-
-   Create a Dataset from `en-joint-002.zip`, then point `DATASET` below at the
-   unzipped directory. The pack must contain `manifest.json`, `rubric.json`,
-   `records.jsonl` and the four split files; the first cell refuses anything else.
+3. **The frozen pack is already attached** as the `saltbo/lev-en-joint-002`
+   Dataset, mounted at `/kaggle/input/lev-en-joint-002`. If you swap packs,
+   update `DATASET` below and add the new source to the kernel metadata. The
+   pack must contain `manifest.json`, `rubric.json`, `records.jsonl` and the
+   four split files; the first cell refuses anything else.
 
 ## What this does and does not prove
 
@@ -137,8 +133,10 @@ lev("check-upstream", "--help")  # cheap import check for the CLI itself
 try:
     import torch
     import transformers
-except ImportError:
-    print("installing the encoder extra (Kaggle did not ship it)")
+    if tuple(int(x) for x in transformers.__version__.split(".")[:2]) < (4, 48):
+        raise ImportError(f"transformers {transformers.__version__} predates ModernBERT")
+except ImportError as error:
+    print(f"installing the encoder extra: {error}")
     subprocess.run(
         [sys.executable, "-m", "pip", "install", "-q", f"{SRC}[encoder]"], check=True
     )
@@ -275,9 +273,7 @@ checkpoint and the report are discarded when the session ends.
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", default="notebooks/kaggle-encoder-smoke.ipynb")
-    parser.add_argument(
-        "--dataset", default="/kaggle/input/lev-en-joint-002/en-joint-002"
-    )
+    parser.add_argument("--dataset", default="/kaggle/input/lev-en-joint-002")
     parser.add_argument("--config", default="configs/encoder-modernbert-base.toml")
     parser.add_argument("--train-run", default="enc-train-001")
     parser.add_argument("--dev-run", default="enc-dev-001")
