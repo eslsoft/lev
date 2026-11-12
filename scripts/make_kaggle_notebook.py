@@ -88,19 +88,38 @@ TRAIN_RUN = "{train_run}"
 DEV_RUN = "{dev_run}"
 
 WORK = Path("/kaggle/working")
-DATASET = Path("{dataset}")
 SRC = WORK / "lev"
+HINT = Path("{dataset}")
 
 required = {{"manifest.json", "rubric.json", "records.jsonl"}} | {{
     f"{{split}}.jsonl" for split in ("train", "development", "calibration", "test")
 }}
-missing = sorted(required - {{p.name for p in DATASET.glob("*")}})
-if missing:
-    root = Path("/kaggle/input")
-    seen = sorted(p.name for p in root.glob("*")) if root.is_dir() else []
+
+
+def is_pack(path):
+    return path.is_dir() and required <= {{p.name for p in path.glob("*")}}
+
+
+def find_pack(root):
+    # Kaggle now mounts datasets under /kaggle/input/datasets/<owner>/<slug>,
+    # so discover the pack instead of pinning a layout that can move again.
+    if is_pack(root):
+        return root
+    for candidate in sorted(p for p in root.rglob("*") if p.is_dir()):
+        if is_pack(candidate):
+            return candidate
+    return None
+
+
+DATASET = HINT if is_pack(HINT) else find_pack(Path("/kaggle/input"))
+if DATASET is None:
+    seen = [
+        str(p.relative_to("/kaggle/input"))
+        for p in Path("/kaggle/input").rglob("*")
+    ][:40]
     raise SystemExit(
-        f"{{DATASET}} is not a frozen pack; missing {{missing}}.\\n"
-        f"/kaggle/input holds: {{seen}}\\n"
+        f"no frozen pack under /kaggle/input; need {{sorted(required)}}.\\n"
+        f"found: {{seen}}\\n"
         "A dataset still processing mounts as an empty directory; wait for "
         "`kaggle datasets status` to report ready, then re-run."
     )
