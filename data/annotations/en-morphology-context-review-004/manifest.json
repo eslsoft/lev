@@ -1,0 +1,13 @@
+{
+  "admitted_training_judgments": 0,
+  "candidate_judgments": 76,
+  "note": "Corrects review status only; originals preserved. Candidate Boolean labels remain hypotheses, not training gold.",
+  "records_sha256": "ab459418b1543485ea6b4ba1cc124bc0fab7d431d5114bed0acc4e2c80f6c6f0",
+  "rubric_sha256": "d66e4b52da7943a46fbc71272adf82571ac48f56891a72e49ad1c0067021576c",
+  "superseded_sources": {
+    "data/annotations/en-morphology-context-review-001/records.jsonl": "b272db92fd6c821acc6879824afc538cb494ece592d531ad6ca0c1f1243193be",
+    "data/annotations/en-morphology-context-review-003/records.jsonl": "a0ab6c82684d867246f73fca28d32915199091910c832b7624f41545898efd7b"
+  },
+  "training_exported": false,
+  "words": 38
+}

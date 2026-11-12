@@ -1,0 +1,13 @@
+{
+  "false_labels": 22,
+  "family_audit_sha256": "14e16e33037bc2fc90ec0f7db37d1ad12bd223714a6218e0a5ad13a0e6ab8e23",
+  "independent_adjudication": false,
+  "judgments": 44,
+  "note": "Single-agent source-derived research judgments on exact occurrences. Grammatical role assessed from the sentence, not copied from an inflection table. Deliberately paired claims are not independent items or complete-word coverage.",
+  "records_sha256": "a0ab6c82684d867246f73fca28d32915199091910c832b7624f41545898efd7b",
+  "source_queue_sha256": "013da0fdf81e1c988183317fc9011c858528ae54d5dde3c1a980f9052779100b",
+  "source_terms": "Original Kaikki/Wiktionary source attribution and terms retained; no new publication grant.",
+  "training_exported": false,
+  "true_labels": 22,
+  "words": 22
+}

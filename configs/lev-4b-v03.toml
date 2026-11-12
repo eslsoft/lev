@@ -1,0 +1,16 @@
+model_name = "lev-4b-v0.3"
+kev_commit = "1f04cfa28e6a708485b28a9585010b9e436b776e"
+base = "Qwen/Qwen3.5-4B-Base"
+base_revision = "1001bb4d826a52d1f399e183466143f4da7b741b"
+init_from = "jaredpalmer/kev-4b@139fdd94f1b6a6ad80cc15e08fcb99cac885a101"
+
+[training]
+epochs = 1
+lr = 0.00001
+batch = 1
+accum = 8
+lora = 16
+head_dim = 256
+checkpointing = 1
+max_state = 7552
+seed = 42

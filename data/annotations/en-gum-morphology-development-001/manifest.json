@@ -1,0 +1,20 @@
+{
+  "candidate_manifest_sha256": "6b983ee3d7808fb21b6afa8ea1898705d3ecdb2ab078eb910d08afc05903af17",
+  "development_sha256": "89497eee63a040a3938abbbd4aef8a915de19fcb7e520f940a511c3c0d7a5c1a",
+  "independent_final_test": false,
+  "judgments": 3592,
+  "known_family_components": 1,
+  "model_scored": false,
+  "records_sha256": "a7b7c5ae3f1c8a96b83498d361169dbbab89d8d17fe3a66ea81c15a5643cc303",
+  "remaining": [
+    "Bundle integration and expanded isolation recheck",
+    "Pinned Kev tokenizer admission",
+    "Fixed comparison protocol before scoring"
+  ],
+  "requests": 898,
+  "source_commit": "b58e74bc22d17220c9198864c253a50a897bf27f",
+  "source_license": "CC BY-NC-SA 4.0; retain GUM annotator and underlying text attribution",
+  "source_sha256": "61d02ce27a143e9749118b1b9c314ac3da40f64ec17a6aaff5fc7b42704f7910",
+  "status": "exported_development_contribution_not_scored",
+  "target_words": 445
+}

@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lev"
+version = "0.1.0"
+description = "Language knowledge decision models trained on Kev"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+dependencies = []
+
+[project.scripts]
+lev = "lev.cli:main"
+
+[project.optional-dependencies]
+modal = [
+    "modal==1.5.5",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[dependency-groups]
+dev = [
+    "ruff==0.14.1",
+]

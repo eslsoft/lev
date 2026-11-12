@@ -1,0 +1,9 @@
+{
+  "independent_adjudication": false,
+  "note": "Occurrence analysis drafts, not gold labels. Family audit and rubric review required. Original source attribution retained in candidate objects.",
+  "reviewed_words": 8,
+  "reviews_sha256": "d10d80c2c5281bc2b4cadaff62ee98088c72a181ba56fa4c438b6d643f821e31",
+  "source_files_and_exact_spans_verified": true,
+  "source_queue_sha256": "013da0fdf81e1c988183317fc9011c858528ae54d5dde3c1a980f9052779100b",
+  "training_exported": false
+}

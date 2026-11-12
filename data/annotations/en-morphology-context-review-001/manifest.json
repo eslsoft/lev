@@ -1,0 +1,12 @@
+{
+  "false_labels": 16,
+  "independent_adjudication": false,
+  "judgments": 32,
+  "note": "Manually selected and reviewed occurrence roles. The two questions deliberately distinguish homographic finite past and participle functions. Small diagnostic contribution, not broad morphology coverage.",
+  "records_sha256": "b272db92fd6c821acc6879824afc538cb494ece592d531ad6ca0c1f1243193be",
+  "source_candidates_sha256": "09378cfb24f5ab0144c79ec35c22232e5c55d14e521cd68806076407415a4ec3",
+  "source_terms": "Retain the original Kaikki/Wiktionary and candidate-source attribution; no new publication grant.",
+  "training_exported": false,
+  "true_labels": 16,
+  "words": 16
+}

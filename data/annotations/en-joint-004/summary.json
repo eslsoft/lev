@@ -1,0 +1,20 @@
+{
+  "added_requests": 17268,
+  "added_target_words": 2955,
+  "artifact_manifest_sha256": "3d7283417c79aee300117a93d83dcfdb8bd306e8a64c0c12ea36dfec5c37d636",
+  "contribution_manifest_sha256": "08d9c8945e4dda69051f497944ce167e9496bd2db7f76607d3708ad357fe8142",
+  "excluded_contribution": "en-morphology-relations-001: unresolved polarity shortcut",
+  "heldout_exports_byte_identical": true,
+  "overlap_audit_sha256": "e7d5fd24465d046e20078e8dabbeae480b753a808d74ce2dd8a965fbd7a48e98",
+  "parent_manifest_sha256": "c2a239fc05643c6aed7f85e7c2238c56a4abe5edd5c4a3c2c1d92620282371ad",
+  "parent_records_preserved": true,
+  "remaining_checks": [
+    "Pinned Kev tokenization",
+    "Combined expanded family audit",
+    "Training registration and validation plan"
+  ],
+  "status": "prepared_pending_full_admission",
+  "training_judgments": 84587,
+  "training_requests": 31173,
+  "training_submitted": false
+}

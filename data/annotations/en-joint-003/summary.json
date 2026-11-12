@@ -1,0 +1,16 @@
+{
+  "added_judgments": 68676,
+  "added_requests": 34338,
+  "added_target_words": 13545,
+  "all_parent_records_preserved": true,
+  "artifact_manifest_sha256": "f0943b1df23d145bead7bfa749bb16896b8a3e873d063bae64af4e2370238a8c",
+  "contribution_manifest_sha256": "eef1e45b3fc3ece7c4cbdc37751bb32bb8ca7ffba79537a361b29a9a0e24084c",
+  "exposure_manifest_sha256": "48732d3cda061c330d74a6e78a1b968ba5e2094894dcf563bb3da5144495f8ea",
+  "heldout_exports_byte_identical": true,
+  "limitations": "Research labels only. Inflection relations do not establish sentence understanding or complete word mastery. Previously inspected heldout sets are historical regression evidence. Tokenization, source-semantic audit and a preregistered experiment remain required before training.",
+  "parent_manifest_sha256": "c2a239fc05643c6aed7f85e7c2238c56a4abe5edd5c4a3c2c1d92620282371ad",
+  "script_sha256": "ed9ccd358fd72ca4f10c571a4d3b6572b48d2c2dbe66f253e71c0a51e58ac51e",
+  "status": "prepared_not_trained",
+  "total_training_requests": 48243,
+  "training_submitted": false
+}

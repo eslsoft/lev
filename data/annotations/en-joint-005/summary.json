@@ -1,0 +1,13 @@
+{
+  "added_development_requests": 898,
+  "all_parent_records_preserved": true,
+  "contribution_manifest_sha256": "e957845a6b98efa6a674745fa91acb3ea98b123efdf9972169ab720c9deb8ab9",
+  "development_requests": 1045,
+  "manifest_sha256": "b41902b1c5974f10fe674557a9de74d45977157c2d89768019a6983cb2180d56",
+  "model_scored": false,
+  "parent_manifest_sha256": "3d7283417c79aee300117a93d83dcfdb8bd306e8a64c0c12ea36dfec5c37d636",
+  "status": "prepared_pending_evaluation_admission",
+  "train_calibration_test_byte_identical": true,
+  "training_requests": 31173,
+  "training_submitted": false
+}
