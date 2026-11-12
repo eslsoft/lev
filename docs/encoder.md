@@ -73,14 +73,16 @@ ValueError: 3 of 15515 inputs exceed --max-len 3072 (abc/q0=3180, ...); raise --
 
 不同：不调用 Kev、不需要 `LEV_KEV_PATH`、**不产生校准**（`calibration_sha256` 固定为 `null`）、**不提供 `serve`**。`job.json` 用 `engine: "encoder"` 记录实际引擎，`report` 会把它带进结果。
 
-## 显存与时间（T4 级单卡，估算）
+## 显存与时间（Kaggle T4 实测，fp16）
 
-| 骨干 | 参数 | fp32 权重+梯度+AdamW | 每 epoch |
-|---|---:|---:|---:|
-| ModernBERT-base | 149M | ~2.7 GiB | 5–20 分钟 |
-| ModernBERT-large | 395M | ~7 GiB | 13–50 分钟 |
+| 数据包 | train 判断 | 每 epoch | 3 epochs 合计 | 峰值显存 |
+|---|---:|---:|---:|---:|
+| `en-joint-010` | 29,423 | 406–407 秒 | 1,220 秒（20.3 分钟） | 6.90 GiB |
+| `en-joint-006` | 80,363 | 1,352–1,357 秒 | 4,065 秒（67.7 分钟） | 6.85 GiB |
 
-这些是估算，不是实测。真实吞吐必须先跑一次短程训练，看 `checkpoint/lev-encoder.json` 里 `history[].seconds` 与 `history[].peak_device_bytes`。
+单卡 T4 16 GiB，fp16，`max_len = 3072`（两包都不截断）。实测吞吐约 **72 判断/秒**（`en-joint-010`）。数字取自 `checkpoint/lev-encoder.json` 的 `history[].seconds` 与 `history[].peak_device_bytes`，不是估算。
+
+ModernBERT-large（395M）未跑。
 
 精度：`dtype` 只影响前向 autocast，权重始终 fp32。T4（sm_75）与 P100（sm_60）没有 bf16 算术单元，`dtype = "bf16"` 在它们上面会退化或报错；需要 bf16 就用 Ampere 及以上的卡。
 
@@ -143,10 +145,50 @@ epoch {"epoch": 1, "pairs": 32, "seconds": 71.85, "train_loss": 1.698, "peak_dev
 
 **这不是模型成绩**。32 条数据训 9 步的模型把 139 条 development 判断全部接受：70/139 = 50.36%，`false_acceptances` 69、`false_rejections` 0。该 split 的基率正好是 70 真 / 69 假，所以"全判真"就是 50.4%——它只证明流水线与评分口径接通了，没有证明任何关于模型能力的事。
 
+## 实测分数（Kaggle T4，fp16，development 147 判断）
+
+| 轮次 | 数据包 | train 判断 | epoch loss | dev 147 | passage_correction | contextual_sense |
+|---|---|---:|---|---:|---:|---:|
+| `enc-train-001` | `en-joint-002` | 15,515 | 0.6545 → 0.5129 | **133/147 = 90.48%** | 128/139 = 92.09% | 5/8 = 62.50% |
+| `enc-train-003` | `en-joint-006` | 80,363 | 0.6995 → **0.6937** | 80/147 = 54.42% | 77/139 = 55.40% | 3/8 = 37.50% |
+| `enc-train-004` | `en-joint-010` | 29,423 | 0.6798 → 0.5855 | **136/147 = 92.52%** | 131/139 = 94.24% | 5/8 = 62.50% |
+
+`enc-train-004` 的 `dataset_sha256` 为 `fc7c843a7936d8cc9cfdcb18091d06a71faabbad26aad72f3374177b4b6a30c9`，与本地 dry-run 完全一致。预注册阈值 0.39（在 303 条 development 上取 222/303 = 73.27%；0.5 时为 212/303 = 69.97%）。该阈值拟合在 303 条上，增益不保证泛化。
+
+### `en-joint-006` 是失败，不是「覆盖更多」
+
+`en-joint-006` 把 `semantic_relation` 从 804 扩到 65,652 条，占 train 的 **81.7%**，标签平衡 0.501，任务是「从两段 WordNet gloss 判 hypernymy」。3 epochs / lr 3e-5 学不动，最优解退化成恒输出 0.5：
+
+- train loss 0.6995 → 0.6949 → **0.6937**，ln 2 = 0.6931；
+- development 全部 **147/147** 条预测落在 0.5 ± 0.05；
+- label=0 的 p 均值 0.4998，label=1 的 p 均值 0.5001。
+
+它同时把 `passage_correction` 从 92.09% 淹到 55.40%。**数据更多、更干净、家族交叉为零，模型反而更差**——词覆盖 55.0% 度量的是数据形状，不是模型能力。
+
+### `semantic_relation` 至今没学会
+
+`enc-train-004` 里把它截到 2,000 synset（约 4,000 判断），模型恢复且略超旧基线，但新增的 semantic_relation 判断只有 **76/156 = 48.72%**，即抛硬币。这 65k 条原料对模型零贡献，只是不再毒害其它任务。**不得把它算成多任务能力提升。**
+
 ## 尚未验证
 
-- 本仓库**还没有**这条路径在真实数据量上的模型分数。上面的显存与时间是估算加一次 smoke，不是成绩。
+- `en-eval-001`（多任务评估包）**尚未训练评分**。它的 development 含 4,069 判断：grammaticality 3,094、pronunciation 672、semantic_relation 156、passage_correction 139、contextual_sense 8。
+- `en-eval-001` 跑 `audit_family_isolation.py` 报 **10 个家族违规**，其中 4 个在 `en-joint-010` 本身就存在。`prepare()` 只校验字面 `family_id`（零交叉），这个更严的词族根视角由项目审计给出，已记录在 `data/research/en-eval-001/isolation-report.json`，不隐藏。
+- `en-eval-001` 的标签全部是 `source_derived` / `source_labeled`，**不是独立裁决**。
+- 未生成 syntax（UD）与 lexical_analysis（Wiktionary）的评估项：本仓库这两个生成器只复述训练项，做出来的 development 会重述 train 而不是度量它。
 - 没有温度校准。`report` 的 `brier_completed_only` 用的是未校准概率，不能与 v0.2 的校准后 Brier 并列。
 - 与 v0.2–v0.6 血统**不可比**：不同骨干、不同精度路径、不同硬件。按 `docs/workflow.md` 的口径，换骨干或换硬件后要重新验证，不能把两边的数字放进同一张表。
 - 编码器不产生 `calibration.json`，也没有 `serve` 入口。
-- T4 上的真实吞吐与显存未测。`dtype = "fp16"` 加 GradScaler 的路径也没有在真实 GPU 上跑过。
+- ModernBERT-large（395M）未跑；DDP 未接，T4×2 的第二张卡用不到。
+
+## 已知数据缺口（未覆盖，不声称覆盖）
+
+本地原料无法产出以下四类，`en-us-vocab-35000-v3` 里它们 **100% 未覆盖**：
+
+| 缺口 | 状态 |
+|---|---|
+| collocations | 需 COCA/BNC 级搭配数据，付费许可与零成本约束冲突 |
+| register | 同上 |
+| etymology | 本地无词源原料 |
+| pronunciation | 8,930 / 35,000 词（25.5%）无发音来源 |
+
+另：`pragmatics` 只出现在 test split，train/dev/cal 为零，因此无法训练也无法在 development 上度量。
