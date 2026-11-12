@@ -153,7 +153,7 @@ epoch {"epoch": 1, "pairs": 32, "seconds": 71.85, "train_loss": 1.698, "peak_dev
 | `enc-train-003` | `en-joint-006` | 80,363 | 0.6995 → **0.6937** | 80/147 = 54.42% | 77/139 = 55.40% | 3/8 = 37.50% |
 | `enc-train-004` | `en-joint-010` | 19,153 | 0.6798 → 0.5855 | **136/147 = 92.52%** | 131/139 = 94.24% | 5/8 = 62.50% |
 
-`enc-train-004` 的 `dataset_sha256` 为 `fc7c843a7936d8cc9cfdcb18091d06a71faabbad26aad72f3374177b4b6a30c9`，与本地 dry-run 完全一致。预注册阈值 0.39（在 303 条 development 上取 222/303 = 73.27%；0.5 时为 212/303 = 69.97%）。该阈值拟合在 303 条上，增益不保证泛化。0.39 的报告落盘为 `runs/kaggle-enc-train-004/enc-dev-004/lev-report-t0.39.json`，由 `lev.report.summarize` 生成；Kaggle 原始报告是阈值 0.5 的版本。
+`enc-train-004` 的 `dataset_sha256` 为 `fc7c843a7936d8cc9cfdcb18091d06a71faabbad26aad72f3374177b4b6a30c9`，与本地 dry-run 完全一致。阈值 0.39 是在这 303 条 development 上按准确率网格搜索选出后冻结的：**对 test 而言是预注册**（test 从未读取），**对 development 而言是样本内拟合**，所以 222/303 = 73.27% 有乐观偏差，未经拟合的数字是阈值 0.5 的 212/303 = 69.97%。`threshold` 字段在 `enc-train-004` 跑完后才加入 config schema，那次 run 的 `job.json` 记的是加字段前的 config（`config_sha256 = b16eb329…`），不含阈值；此后每次 run 自动记录。0.39 的报告落盘为 `runs/kaggle-enc-train-004/enc-dev-004/lev-report-t0.39.json`，由 `lev.report.summarize` 生成；Kaggle 原始报告是阈值 0.5 的版本。
 
 ### `en-joint-006` 是失败，不是「覆盖更多」
 
@@ -174,6 +174,7 @@ epoch {"epoch": 1, "pairs": 32, "seconds": 71.85, "train_loss": 1.698, "peak_dev
 - `en-eval-001`（多任务评估包）**尚未训练评分**。development 含 4,899 判断，覆盖 7 类：grammaticality 3,094、pronunciation 672、syntax 544、lexical_analysis 286、semantic_relation 156、passage_correction 139、contextual_sense 8。
 - `en-eval-001` 跑 `audit_family_isolation.py` 报 **44 个家族违规**（syntax 34、lexical_analysis 10、semantic_relation 4、pronunciation 4、grammaticality 3、contextual_sense 1），其中 4 个在 `en-joint-010` 本身就存在。`prepare()` 只校验字面 `family_id`（零交叉），这个更严的词族根视角由项目审计给出，已记录在 `data/research/en-eval-001/isolation-report.json`，不隐藏。
 - 重叠不可避：base train 的 passages 覆盖极宽词汇面，任何新 held-out 句子几乎必然与某条 train passage 同词族。新增项因此按「家族未被 base 分配」筛选（UD 排除 823 条、BLiMP 排除 2,881 条、CMUdict 排除 34 条、Wiktionary 排除 22 条），仍挡不住 `attach()` 事后把文档与词连起来。
+- 因此「与训练包解耦」**只做到产物层面**（独立 artifact、独立 `job.json`、独立审计），**没有做到词族层面**：上面 44 个违规就是没做到的量。本包不能当作独立裁决集使用。
 - `en-eval-001` 的标签全部是 `source_derived` / `source_labeled`，**不是独立裁决**。
 - 没有温度校准。`report` 的 `brier_completed_only` 用的是未校准概率，不能与 v0.2 的校准后 Brier 并列。
 - 与 v0.2–v0.6 血统**不可比**：不同骨干、不同精度路径、不同硬件。按 `docs/workflow.md` 的口径，换骨干或换硬件后要重新验证，不能把两边的数字放进同一张表。

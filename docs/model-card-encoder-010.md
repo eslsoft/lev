@@ -8,7 +8,7 @@
 
 输入是冻结包 `en-joint-010` 的一条记录渲染成的文本：`state` 按确定性规则展开，后接问题的 `instructions`。输出是 `false / true` 的未校准概率，`p[1]` 表示问题为真。不做生成、不给解释。
 
-预注册决策阈值 **0.39**，写在 `configs/encoder-modernbert-base-en-joint-010.toml` 的 `threshold` 字段，随 `config` 整体写入 `job.json`，因此每次 run 都记录了产生其决策的确切边界。
+决策阈值 **0.39**，写在 `configs/encoder-modernbert-base-en-joint-010.toml` 的 `threshold` 字段。该字段是在 `enc-train-004` 跑完之后才加入 config schema 的，所以**那次 run 的 `job.json` 里没有它**：`config_sha256 = b16eb329…` 正是加字段前的 config 摘要。此后每次 run 的 `job.json` 内嵌完整 config，会自动记录阈值；对已经跑完的 `enc-train-004`，阈值只存在于下面的报告里，不在其 `job.json` 中。
 
 0.39 的报告已落盘为 `runs/kaggle-enc-train-004/enc-dev-004/lev-report-t0.39.json`（**222/303 = 73.27%**，semantic_relation 从 76/156 升到 86/156），由 `lev.report.summarize` 同一函数生成。Kaggle 产出的原始报告是阈值 0.5 的 212/303 = 69.97%。本地重跑评分受阻于 transformers 版本错配（Kaggle 5.x 写入 `tokenizer_class: TokenizersBackend`，本地固定 4.57.6），失败产物保留在 `runs/enc-dev-004-local-failed-01/`。
 
@@ -22,7 +22,7 @@
 
 `enc-train-004` 在 303 条多任务 development 上为 212/303 = 69.97%（阈值 0.39 时 222/303 = 73.27%），`brier_completed_only`（passage_correction）0.05576，`dataset_sha256` = `fc7c843a7936d8cc9cfdcb18091d06a71faabbad26aad72f3374177b4b6a30c9`，与本地 dry-run 逐字节一致。
 
-阈值 0.39 由 development 上的网格搜索选出，拟合在 303 条样本上，增益不保证泛化。test split 未读取。
+阈值 0.39 由 development 上的网格搜索选出，拟合在 303 条样本上，增益不保证泛化。**因此 222/303 是样本内数字**（阈值就是在这批样本上挑的，有乐观偏差）；未经拟合的数字是阈值 0.5 的 212/303 = 69.97%。它对 test 而言才是预注册：test split 未读取。
 
 ## 负结论：`en-joint-006` 是退化解
 
