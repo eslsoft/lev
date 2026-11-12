@@ -129,6 +129,19 @@ print("output:", WORK)
         ),
         code(
             """
+import socket
+
+# Kaggle gates Internet and GPU behind phone verification. Fail with the fix
+# instead of a bare CalledProcessError from git clone.
+try:
+    socket.create_connection(("github.com", 443), timeout=10).close()
+except OSError as error:
+    raise SystemExit(
+        f"no outbound network: {error}\\n"
+        "Kaggle locks Internet and GPU behind phone verification. "
+        "Open kaggle.com/settings/account -> Phone verification, then re-run."
+    )
+
 if SRC.exists():
     shutil.rmtree(SRC)
 subprocess.run(
