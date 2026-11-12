@@ -40,7 +40,7 @@ TRAIN_KEYS = {
     "warmup",
 }
 DTYPES = ("fp32", "fp16", "bf16")
-TOP = ("model_name", "backbone", "backbone_revision", "max_len", "training")
+TOP = ("model_name", "backbone", "backbone_revision", "max_len", "threshold", "training")
 
 
 def config(path):
@@ -57,6 +57,10 @@ def config(path):
         raise ValueError("backbone_revision must pin the full commit SHA")
     if type(cfg["max_len"]) is not int or not 384 <= cfg["max_len"] <= 8192:
         raise ValueError("max_len must be an integer in [384, 8192]")
+    # The decision boundary is declared in the config, so job.json records the
+    # exact threshold that produced a run instead of an implicit 0.5.
+    if type(cfg["threshold"]) is not float or not 0 < cfg["threshold"] < 1:
+        raise ValueError("threshold must be a float in (0, 1)")
     fields(cfg["training"], TRAIN_KEYS)
     for name in ("epochs", "batch", "accum", "max_tokens", "seed"):
         value = cfg["training"][name]

@@ -2,6 +2,7 @@ model_name = "lev-enc-mbert-large-v0.1"
 backbone = "answerdotai/ModernBERT-large"
 backbone_revision = "45bb4654a4d5aaff24dd11d4781fa46d39bf8c13"
 max_len = 3072
+threshold = 0.39
 
 [training]
 epochs = 3
