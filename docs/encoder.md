@@ -153,7 +153,7 @@ epoch {"epoch": 1, "pairs": 32, "seconds": 71.85, "train_loss": 1.698, "peak_dev
 | `enc-train-003` | `en-joint-006` | 80,363 | 0.6995 → **0.6937** | 80/147 = 54.42% | 77/139 = 55.40% | 3/8 = 37.50% |
 | `enc-train-004` | `en-joint-010` | 19,153 | 0.6798 → 0.5855 | **136/147 = 92.52%** | 131/139 = 94.24% | 5/8 = 62.50% |
 
-`enc-train-004` 的 `dataset_sha256` 为 `fc7c843a7936d8cc9cfdcb18091d06a71faabbad26aad72f3374177b4b6a30c9`，与本地 dry-run 完全一致。预注册阈值 0.39（在 303 条 development 上取 222/303 = 73.27%；0.5 时为 212/303 = 69.97%）。该阈值拟合在 303 条上，增益不保证泛化。
+`enc-train-004` 的 `dataset_sha256` 为 `fc7c843a7936d8cc9cfdcb18091d06a71faabbad26aad72f3374177b4b6a30c9`，与本地 dry-run 完全一致。预注册阈值 0.39（在 303 条 development 上取 222/303 = 73.27%；0.5 时为 212/303 = 69.97%）。该阈值拟合在 303 条上，增益不保证泛化。0.39 的报告落盘为 `runs/kaggle-enc-train-004/enc-dev-004/lev-report-t0.39.json`，由 `lev.report.summarize` 生成；Kaggle 原始报告是阈值 0.5 的版本。
 
 ### `en-joint-006` 是失败，不是「覆盖更多」
 

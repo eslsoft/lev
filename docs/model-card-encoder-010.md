@@ -10,6 +10,8 @@
 
 预注册决策阈值 **0.39**，写在 `configs/encoder-modernbert-base-en-joint-010.toml` 的 `threshold` 字段，随 `config` 整体写入 `job.json`，因此每次 run 都记录了产生其决策的确切边界。
 
+0.39 的报告已落盘为 `runs/kaggle-enc-train-004/enc-dev-004/lev-report-t0.39.json`（**222/303 = 73.27%**，semantic_relation 从 76/156 升到 86/156），由 `lev.report.summarize` 同一函数生成。Kaggle 产出的原始报告是阈值 0.5 的 212/303 = 69.97%。本地重跑评分受阻于 transformers 版本错配（Kaggle 5.x 写入 `tokenizer_class: TokenizersBackend`，本地固定 4.57.6），失败产物保留在 `runs/enc-dev-004-local-failed-01/`。
+
 ## 主结果：development 147 判断
 
 | 轮次 | 数据包 | train 判断 | dev 147 | passage_correction | contextual_sense |
