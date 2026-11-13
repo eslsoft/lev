@@ -8,7 +8,9 @@
 
 输入是冻结包 `en-joint-010` 的一条记录渲染成的文本：`state` 按确定性规则展开，后接问题的 `instructions`。输出是 `false / true` 的未校准概率，`p[1]` 表示问题为真。不做生成、不给解释。
 
-决策阈值 **0.39**，写在 `configs/encoder-modernbert-base-en-joint-010.toml` 的 `threshold` 字段。该字段是在 `enc-train-004` 跑完之后才加入 config schema 的，所以**那次 run 的 `job.json` 里没有它**：`config_sha256 = b16eb329…` 正是加字段前的 config 摘要。此后每次 run 的 `job.json` 内嵌完整 config，会自动记录阈值；对已经跑完的 `enc-train-004`，阈值只存在于下面的报告里，不在其 `job.json` 中。
+决策阈值 **0.39**，写在 `configs/encoder-modernbert-base-en-joint-010.toml` 的 `threshold` 字段。该字段是在 `enc-train-004` 跑完之后才加入 config schema 的，所以**那次 run 的 `job.json` 里没有它**：`config_sha256 = b16eb329…` 正是加字段前的 config 摘要。
+
+为把阈值真正写进 run，已用保存的 checkpoint 重新评了一次分：**`enc-dev-005`**（产物在 `runs/kaggle-enc-dev-005/`）的 `job.json` 记录 `config.threshold = 0.39`、`config_sha256 = 46f335f8…`，`operation = benchmark`，`status = succeeded`。重跑分数与 `enc-dev-004` 完全一致（阈值 0.5 → 212/303，0.39 → 222/303，逐类也相同），说明重跑没有改变结论。该 run 自带的 `lev-report-t0.39.json`（在 Kaggle 上由 `lev report` 直接生成）为 222/303 = 73.27%，completed 303 / missing 0。
 
 0.39 的报告已落盘为 `runs/kaggle-enc-train-004/enc-dev-004/lev-report-t0.39.json`（**222/303 = 73.27%**，semantic_relation 从 76/156 升到 86/156），由 `lev.report.summarize` 同一函数生成。Kaggle 产出的原始报告是阈值 0.5 的 212/303 = 69.97%。本地重跑评分受阻于 transformers 版本错配（Kaggle 5.x 写入 `tokenizer_class: TokenizersBackend`，本地固定 4.57.6），失败产物保留在 `runs/enc-dev-004-local-failed-01/`。
 
