@@ -24,6 +24,11 @@ def main() -> None:
     parser.add_argument("--out", default="notebooks/kaggle-encoder-benchmark-004.ipynb")
     parser.add_argument("--dev-run", default="enc-dev-005")
     parser.add_argument("--threshold", default="0.39")
+    parser.add_argument(
+        "--pack",
+        default="",
+        help="dataset slug to score; required when more than one pack is mounted",
+    )
     args = parser.parse_args()
 
     try:
@@ -69,7 +74,21 @@ def main() -> None:
             "metadata": {},
             "execution_count": None,
             "outputs": [],
-            "source": [
+            "source": (
+                [
+                    f'PACK = "{args.pack}"\n',
+                    "for _p in Path(\"/kaggle/input\").rglob(\"manifest.json\"):\n",
+                    "    if _p.parent.name == PACK:\n",
+                    "        DATASET = _p.parent\n",
+                    "        break\n",
+                    "assert is_pack(DATASET), f\"no pack named {PACK}\"\n",
+                    'print("scoring pack:", DATASET)\n',
+                    "\n",
+                ]
+                if args.pack
+                else []
+            )
+            + [
                 "CHECKPOINT = next(\n",
                 '    p.parent for p in Path("/kaggle/input").rglob("model.safetensors")\n',
                 ")\n",
