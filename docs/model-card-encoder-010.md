@@ -10,7 +10,7 @@
 
 决策阈值 **0.39**，写在 `configs/encoder-modernbert-base-en-joint-010.toml` 的 `threshold` 字段。该字段是在 `enc-train-004` 跑完之后才加入 config schema 的，所以**那次 run 的 `job.json` 里没有它**：`config_sha256 = b16eb329…` 正是加字段前的 config 摘要。
 
-为把阈值真正写进 run，已用保存的 checkpoint 重新评了一次分：**`enc-dev-005`**（产物在 `runs/kaggle-enc-dev-005/`）的 `job.json` 记录 `config.threshold = 0.39`、`config_sha256 = 46f335f8…`，`operation = benchmark`，`status = succeeded`。重跑分数与 `enc-dev-004` 完全一致（阈值 0.5 → 212/303，0.39 → 222/303，逐类也相同），说明重跑没有改变结论。该 run 自带的 `lev-report-t0.39.json`（在 Kaggle 上由 `lev report` 直接生成）为 222/303 = 73.27%，completed 303 / missing 0。
+为把阈值真正写进 run，已用保存的 checkpoint 重新评了一次分：**`enc-dev-005`**（产物在 `runs/kaggle-enc-dev-005-v2/`）的 `job.json` 记录 `config.threshold = 0.39`、`config_sha256 = 46f335f8…`，`operation = benchmark`，`status = succeeded`。重跑分数与 `enc-dev-004` 完全一致（阈值 0.5 → 212/303，0.39 → 222/303，逐类也相同），说明重跑没有改变结论。该 run 自带的 `lev-report-t0.39.json`（在 Kaggle 上由 `lev report` 直接生成）为 222/303 = 73.27%，completed 303 / missing 0。
 
 0.39 的报告已落盘为 `runs/kaggle-enc-train-004/enc-dev-004/lev-report-t0.39.json`（**222/303 = 73.27%**，semantic_relation 从 76/156 升到 86/156），由 `lev.report.summarize` 同一函数生成。Kaggle 产出的原始报告是阈值 0.5 的 212/303 = 69.97%。本地重跑评分受阻于 transformers 版本错配（Kaggle 5.x 写入 `tokenizer_class: TokenizersBackend`，本地固定 4.57.6），失败产物保留在 `runs/enc-dev-004-local-failed-01/`。
 
@@ -53,7 +53,7 @@
 
 多任务评估包，development 4,899 判断，覆盖 7 类：grammaticality 3,094、pronunciation 672、syntax 544、lexical_analysis 286、semantic_relation 156、passage_correction 139、contextual_sense 8。**尚未训练评分。**
 
-- `audit_family_isolation.py` 报 **44 个家族违规**（syntax 34、lexical_analysis 10、semantic_relation 4、pronunciation 4、grammaticality 3、contextual_sense 1），其中 4 个在 `en-joint-010` 本身就存在；`prepare()` 只校验字面 `family_id`（零交叉），更严的词族根视角见 `data/research/en-eval-001/isolation-report.json`。
+- `audit_family_isolation.py` 报 **44 个家族违规**（syntax 34、lexical_analysis 10、semantic_relation 4、pronunciation 4、grammaticality 3、contextual_sense 1），其中 4 个在 `en-joint-010` 本身就存在；`prepare()` 只校验字面 `family_id`（零交叉），更严的词族根视角见 `data/research/en-eval-001/isolation-report.json`；其 `rows_by_origin` 早期口径错误，按审计自身 `origin` 字段重算为 prior 343 / current 4,531，见 `isolation-report-v2.json`。
 - 重叠不可避：base train 的 passages 覆盖极宽词汇面，任何新 held-out 句子几乎必然与某条 train passage 同词族。新增项按「家族未被 base 分配」筛选（UD 排除 823、BLiMP 排除 2,881、CMUdict 排除 34、Wiktionary 排除 22），仍挡不住 `attach()` 事后把文档与词连起来。
 - 标签全部为 `source_derived` / `source_labeled`，**不是独立裁决**。
 
