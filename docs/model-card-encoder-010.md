@@ -26,6 +26,26 @@
 
 阈值 0.39 由 development 上的网格搜索选出，拟合在 303 条样本上，增益不保证泛化。**因此 222/303 是样本内数字**（阈值就是在这批样本上挑的，有乐观偏差）；未经拟合的数字是阈值 0.5 的 212/303 = 69.97%。它对 test 而言才是预注册：test split 未读取。
 
+### 七类能力矩阵：只学会两类
+
+`enc-dev-006` 在独立评估包 `en-eval-001` 的 development 上评了全部 7 类（4,899 判断，阈值 0.39，`dataset_sha256 = c7bbc575…`，completed 4,899 / missing 0）：
+
+| 类别 | 得分 | 判定 |
+|---|---:|---|
+| `passage_correction_acceptability` | 131/139 = **94.24%** | 真会 |
+| `pronunciation` | 543/672 = **80.80%** | 真会（可能依赖拼写浅层线索） |
+| `contextual_sense` | 5/8 = 62.50% | n=8，不可解读 |
+| `semantic_relation` | 86/156 = 55.13% | 接近随机 |
+| `grammaticality` | 1,550/3,094 = **50.10%** | 随机 |
+| `syntax` | 272/544 = **50.00%** | 恰好随机 |
+| `lexical_analysis` | 141/286 = **49.30%** | 低于随机 |
+
+总体 2,728/4,899 = 55.68%，但 `grammaticality` 一项就占 63% 的判断，把总平均拖到随机线附近，所以这个总数字不能当能力指标。
+
+**上表推翻了「多任务模型」的说法。** `grammaticality` 训练了 9,072 条，在新样本上只拿到 50.10%——训练信号没有泛化。`syntax` 恰好 50.00%，`lexical_analysis` 低于随机。
+
+所以 92.52% 的实际含义是：147 条里 139 条（95%）都是 `passage_correction`。把 7 类摊开测，这是「段落纠错 + 发音判断」两个专才，不是多任务模型。
+
 ## 负结论：`en-joint-006` 是退化解
 
 `en-joint-006` 把 `semantic_relation` 从 804 扩到 65,652 条，占 train 的 **81.7%**，标签平衡 0.501，任务是「从两段 WordNet gloss 判 hypernymy」。3 epochs / lr 3e-5 学不动：
@@ -51,7 +71,7 @@
 
 ## 评估包 `en-eval-001`
 
-多任务评估包，development 4,899 判断，覆盖 7 类：grammaticality 3,094、pronunciation 672、syntax 544、lexical_analysis 286、semantic_relation 156、passage_correction 139、contextual_sense 8。**尚未训练评分。**
+多任务评估包，development 4,899 判断，覆盖 7 类：grammaticality 3,094、pronunciation 672、syntax 544、lexical_analysis 286、semantic_relation 156、passage_correction 139、contextual_sense 8。**已由 `enc-dev-006` 评分**，结果见上节七类能力矩阵：只有 `passage_correction` 94.24% 与 `pronunciation` 80.80% 真正学会，其余四类处于随机水平。
 
 - `audit_family_isolation.py` 报 **44 个家族违规**（syntax 34、lexical_analysis 10、semantic_relation 4、pronunciation 4、grammaticality 3、contextual_sense 1），其中 4 个在 `en-joint-010` 本身就存在；`prepare()` 只校验字面 `family_id`（零交叉），更严的词族根视角见 `data/research/en-eval-001/isolation-report.json`；其 `rows_by_origin` 早期口径错误，按审计自身 `origin` 字段重算为 prior 343 / current 4,531，见 `isolation-report-v2.json`。
 - 重叠不可避：base train 的 passages 覆盖极宽词汇面，任何新 held-out 句子几乎必然与某条 train passage 同词族。新增项按「家族未被 base 分配」筛选（UD 排除 823、BLiMP 排除 2,881、CMUdict 排除 34、Wiktionary 排除 22），仍挡不住 `attach()` 事后把文档与词连起来。

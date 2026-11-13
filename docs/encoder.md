@@ -167,11 +167,33 @@ epoch {"epoch": 1, "pairs": 32, "seconds": 71.85, "train_loss": 1.698, "peak_dev
 
 ### `semantic_relation` 至今没学会
 
-`enc-train-004` 里把它截到 2,000 synset（约 4,000 判断），模型恢复且略超旧基线，但新增的 semantic_relation 判断只有 **76/156 = 48.72%**，即抛硬币。这 65k 条原料对模型零贡献，只是不再毒害其它任务。**不得把它算成多任务能力提升。**
+`enc-train-004` 里把它截到 2,000 synset（约 4,000 判断），模型恢复且略超旧基线，但新增的 semantic_relation 判断只有 **76/156 = 48.72%**（阈值 0.5），即抛硬币。这 65k 条原料对模型零贡献，只是不再毒害其它任务。**不得把它算成多任务能力提升。**
+
+### 七类能力矩阵：模型只学会两类
+
+`enc-dev-006` 在独立评估包 `en-eval-001` 的 development 上评了全部 7 类（4,899 判断，阈值 0.39，`dataset_sha256 = c7bbc575…`，completed 4,899 / missing 0）：
+
+| 类别 | 得分 | 判定 |
+|---|---:|---|
+| `passage_correction_acceptability` | 131/139 = **94.24%** | 真会 |
+| `pronunciation` | 543/672 = **80.80%** | 真会（可能依赖拼写浅层线索） |
+| `contextual_sense` | 5/8 = 62.50% | n=8，不可解读 |
+| `semantic_relation` | 86/156 = 55.13% | 接近随机 |
+| `grammaticality` | 1,550/3,094 = **50.10%** | 随机 |
+| `syntax` | 272/544 = **50.00%** | 恰好随机 |
+| `lexical_analysis` | 141/286 = **49.30%** | 低于随机 |
+
+总体 2,728/4,899 = 55.68%，但这是混合产物：`grammaticality` 一项就占 63% 的判断，把总平均拖到随机线附近。
+
+**这个矩阵推翻了「多任务模型」的说法。** 训练集里 `grammaticality` 有 9,072 条，在新样本上只拿到 50.10%——训练信号没有泛化，模型在训练集上学到的东西不迁移到同分布的新句子。`syntax` 恰好 50.00%，`lexical_analysis` 甚至低于随机。
+
+所以 92.52% 那个头条数字的实际含义是：147 条里 139 条（95%）都是 `passage_correction`。把 7 类摊开测，这个模型是「段落纠错 + 发音判断」两个专才，不是多任务模型。
+
+这也解释了 `en-joint-006` 为什么退化：`semantic_relation` 本来就不是这个规模与步数下能学的任务，把它灌到 81.7% 只能让模型收敛到恒定 0.5。
 
 ## 尚未验证
 
-- `en-eval-001`（多任务评估包）**尚未训练评分**。development 含 4,899 判断，覆盖 7 类：grammaticality 3,094、pronunciation 672、syntax 544、lexical_analysis 286、semantic_relation 156、passage_correction 139、contextual_sense 8。
+- `en-eval-001`（多任务评估包）已由 `enc-dev-006` 评分，结果见上节「七类能力矩阵」。development 4,899 判断，7 类分布：grammaticality 3,094、pronunciation 672、syntax 544、lexical_analysis 286、semantic_relation 156、passage_correction 139、contextual_sense 8。
 - `en-eval-001` 跑 `audit_family_isolation.py` 报 **44 个家族违规**（syntax 34、lexical_analysis 10、semantic_relation 4、pronunciation 4、grammaticality 3、contextual_sense 1），其中 4 个在 `en-joint-010` 本身就存在。`prepare()` 只校验字面 `family_id`（零交叉），这个更严的词族根视角由项目审计给出，已记录在 `data/research/en-eval-001/isolation-report.json`，不隐藏。该文件的 `rows_by_origin` 早期按 kind 猜测 base/fresh，口径错误；按审计自身 `origin` 字段重算为 **prior 343 / current 4,531**，见 `isolation-report-v2.json`，违规数 44 与逐类分布不变。
 - 重叠不可避：base train 的 passages 覆盖极宽词汇面，任何新 held-out 句子几乎必然与某条 train passage 同词族。新增项因此按「家族未被 base 分配」筛选（UD 排除 823 条、BLiMP 排除 2,881 条、CMUdict 排除 34 条、Wiktionary 排除 22 条），仍挡不住 `attach()` 事后把文档与词连起来。
 - 因此「与训练包解耦」**只做到产物层面**（独立 artifact、独立 `job.json`、独立审计），**没有做到词族层面**：上面 44 个违规就是没做到的量。本包不能当作独立裁决集使用。
